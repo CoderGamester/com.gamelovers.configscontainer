@@ -8,10 +8,10 @@ using System.Collections.ObjectModel;
 namespace GameLovers.ConfigsContainer
 {
 	/// <summary>
-	/// Container with all the Game's static data, including the game design data
+	/// Provides all the Game's config static data, including the game design data
 	/// Has the imported data from the Universal Google Sheet file on the web
 	/// </summary>
-	public interface IConfigs
+	public interface IConfigsProvider
 	{
 		/// <summary>
 		/// Requests the Config of <typeparamref name="T"/> type and with the given <paramref name="id"/>
@@ -30,7 +30,7 @@ namespace GameLovers.ConfigsContainer
 	}
 	
 	/// <inheritdoc />
-	public class Configs : IConfigs
+	public class ConfigsProvider : IConfigsProvider
 	{
 		private readonly IDictionary<Type, IEnumerable> _configs = new Dictionary<Type, IEnumerable>();
 
