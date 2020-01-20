@@ -53,15 +53,16 @@ namespace GameLovers.ConfigsContainer
 		}
 
 		/// <summary>
-		/// Adds the given <paramref name="configList"/> to the container
+		/// Adds the given <paramref name="configList"/> to the container.
+		/// The configuration will use the given <paramref name="referenceIdResolver"/> to map each config to it's defined id
 		/// </summary>
-		public void AddConfigs<T>(IList<T> configList) where T : struct, IConfig
+		public void AddConfigs<T>(Func<T, int> referenceIdResolver, IList<T> configList) where T : struct
 		{
 			var dictionary = new Dictionary<int, T>();
 
 			for (int i = 0; i < configList.Count; i++)
 			{
-				dictionary.Add(configList[i].ConfigId, configList[i]);
+				dictionary.Add(referenceIdResolver(configList[i]), configList[i]);
 			}
 
 			_configs.Add(typeof(T), new ReadOnlyDictionary<int, T>(dictionary));
