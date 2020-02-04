@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 // ReSharper disable once CheckNamespace
 
-namespace GameLovers.ConfigsContainer
+namespace GameLovers
 {
 	public enum ListUpdateType
 	{
@@ -20,6 +20,10 @@ namespace GameLovers.ConfigsContainer
 	/// </summary>
 	public interface IIdList
 	{
+		/// <summary>
+		/// Requests the list element count
+		/// </summary>
+		int Count { get; }
 	}
 
 	/// <inheritdoc />
@@ -84,13 +88,13 @@ namespace GameLovers.ConfigsContainer
 		where TValue : struct
 	{
 		/// <summary>
-		/// Add the given <see cref="data"/> to the list.
+		/// Add the given <paramref name="data"/> to the list.
 		/// It will notify any observer listing to its data
 		/// </summary>
 		void Add(TValue data);
 		
 		/// <summary>
-		/// Changes the given <see cref="data"/> in the list. If the data does not exist it will be added.
+		/// Changes the given <paramref name="data"/> in the list. If the data does not exist it will be added.
 		/// It will notify any observer listing to its data
 		/// </summary>
 		void Set(TValue data);
@@ -137,22 +141,23 @@ namespace GameLovers.ConfigsContainer
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onRemoveActions = new Dictionary<TKey, IList<Action<TValue>>>();
-		private readonly IReadOnlyDictionary<int, IList<Action<TValue>>> _updates;
+		private readonly IReadOnlyDictionary<int, IList<Action<TValue>>> _updates = 
+			new ReadOnlyDictionary<int, IList<Action<TValue>>>(new Dictionary<int, IList<Action<TValue>>>
+			{
+				{(int) ListUpdateType.Added, new List<Action<TValue>>()},
+				{(int) ListUpdateType.Removed, new List<Action<TValue>>()},
+				{(int) ListUpdateType.Updated, new List<Action<TValue>>()}
+			});
+
+		/// <inheritdoc />
+		public int Count => _list.Count;
 		
 		private IdList() {}
  
 		public IdList(Func<TValue, TKey> referenceIdResolver, IList<TValue> list)
 		{
-			var dictionary = new Dictionary<int, IList<Action<TValue>>>();
-			
 			_referenceIdResolver = referenceIdResolver;
 			_list = list;
-			
-			dictionary.Add((int) ListUpdateType.Added, new List<Action<TValue>>());
-			dictionary.Add((int) ListUpdateType.Removed, new List<Action<TValue>>());
-			dictionary.Add((int) ListUpdateType.Updated, new List<Action<TValue>>());
-			
-			_updates = new ReadOnlyDictionary<int, IList<Action<TValue>>>(dictionary);
 		}
 
 		/// <inheritdoc />
@@ -418,6 +423,17 @@ namespace GameLovers.ConfigsContainer
 			{
 				updates[i](data);
 			}
+		}
+	}
+
+	/// <inheritdoc cref="IIdList{TKey,TValue}" />
+	/// <remarks>
+	/// It is acts as a list with capabilities to observe it for changes within it's container
+	/// </remarks>
+	public class ObservableList<T> : IdList<int, T> where T : struct
+	{
+		public ObservableList(IList<T> list) : base(list.IndexOf, list)
+		{
 		}
 	}
 }
