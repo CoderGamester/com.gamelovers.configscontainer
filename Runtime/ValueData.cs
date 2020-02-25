@@ -2,6 +2,7 @@ using System;
 
 // ReSharper disable once CheckNamespace
 
+// TODO: Remove this after Unity 2020.1 release. Unity will allow Generic Type Serialization....FINALLY \o/
 namespace GameLovers
 {
 	[Serializable]
