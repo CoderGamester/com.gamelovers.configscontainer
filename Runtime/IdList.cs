@@ -34,19 +34,19 @@ namespace GameLovers
 		where TValue : struct
 	{
 		/// <summary>
-		/// Looks up the data that is associated with the given <paramref name="id"/>.
+		/// Looks up and return the data that is associated with the given <paramref name="key"/>
+		/// </summary>
+		/// <exception cref="ArgumentException">
+		/// Thrown when there is no data is associated with the given <paramref name="key"/>
+		/// </exception>
+		TValue this[TKey key] { get; }
+			
+		/// <summary>
+		/// Looks up the data that is associated with the given <paramref name="key"/>.
 		/// It return true if is able to delivery out the given <paramref name="value"/>.
 		/// The <paramref name="value"/> will be the default if returns false
 		/// </summary>
-		bool TryGet(TKey id, out TValue value);
- 
-		/// <summary>
-		/// Looks up and return the ata that is associated with the given <paramref name="id"/>
-		/// </summary>
-		/// <exception cref="ArgumentException">
-		/// Thrown when there is no data is associated with the given <paramref name="id"/>
-		/// </exception>
-		TValue Get(TKey id);
+		bool TryGet(TKey key, out TValue value);
 		
 		/// <summary>
 		/// Requests this list as a <see cref="IReadOnlyList{T}"/>
@@ -88,16 +88,16 @@ namespace GameLovers
 		where TValue : struct
 	{
 		/// <summary>
+		/// Changes the given <paramref name="key"/> in the list. If the data does not exist it will be added.
+		/// It will notify any observer listing to its data
+		/// </summary>
+		new TValue this[TKey key] { get; set; }
+		
+		/// <summary>
 		/// Add the given <paramref name="data"/> to the list.
 		/// It will notify any observer listing to its data
 		/// </summary>
 		void Add(TValue data);
-		
-		/// <summary>
-		/// Changes the given <paramref name="data"/> in the list. If the data does not exist it will be added.
-		/// It will notify any observer listing to its data
-		/// </summary>
-		void Set(TValue data);
 
 		/// <summary>
 		/// Returns this list reference as an <see cref="IList{T}"/>
@@ -141,7 +141,7 @@ namespace GameLovers
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onRemoveActions = new Dictionary<TKey, IList<Action<TValue>>>();
-		private readonly IReadOnlyDictionary<int, IList<Action<TValue>>> _updates = 
+		private readonly IReadOnlyDictionary<int, IList<Action<TValue>>> _genericUpdateActions = 
 			new ReadOnlyDictionary<int, IList<Action<TValue>>>(new Dictionary<int, IList<Action<TValue>>>
 			{
 				{(int) ListUpdateType.Added, new List<Action<TValue>>()},
@@ -160,6 +160,47 @@ namespace GameLovers
 			_list = list;
 		}
 
+		/// <inheritdoc cref="IIdList{TKey,TValue}.this" />
+		public TValue this[TKey key]
+		{
+			get
+			{
+				if (TryGet(key, out var data))
+				{
+					return data;
+				}
+
+				throw new ArgumentException($"Can not find {typeof(TValue).Name} to id {key.ToString()}");
+			}
+			set
+			{
+				var id = _referenceIdResolver(value);
+				int index = FindIndex(id);
+				if (index < 0)
+				{
+					Add(value);
+				}
+				else
+				{
+					_list[index] = value;
+				}
+ 
+				if (_onUpdateActions.TryGetValue(id, out var actions))
+				{
+					for (var i = 0; i < actions.Count; i++)
+					{
+						actions[i](value);
+					}
+				}
+
+				var updates = _genericUpdateActions[(int) ListUpdateType.Updated];
+				for (var i = 0; i < updates.Count; i++)
+				{
+					updates[i](value);
+				}
+			}
+		}
+
 		/// <inheritdoc />
 		public bool TryGet(TKey id, out TValue value)
 		{
@@ -174,17 +215,6 @@ namespace GameLovers
 			value = _list[index];
 
 			return true;
-		}
- 
-		/// <inheritdoc />
-		public TValue Get(TKey id)
-		{
-			if (TryGet(id, out TValue data))
-			{
-				return data;
-			}
-
-			throw new ArgumentException($"Can not find {typeof(TValue).Name} to id {id.ToString()}");
 		}
 
 		/// <inheritdoc />
@@ -236,7 +266,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void Observe(ListUpdateType updateType, Action<TValue> onUpdate)
 		{
-			_updates[(int) updateType].Add(onUpdate);
+			_genericUpdateActions[(int) updateType].Add(onUpdate);
 		}
 
 		/// <inheritdoc />
@@ -270,7 +300,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void StopObserving(ListUpdateType updateType, Action<TValue> onUpdate)
 		{
-			_updates[(int) updateType].Remove(onUpdate);
+			_genericUpdateActions[(int) updateType].Remove(onUpdate);
 		}
 
 		public void StopObserving(TKey id)
@@ -314,7 +344,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _updates[(int) ListUpdateType.Added];
+			var updates = _genericUpdateActions[(int) ListUpdateType.Added];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](data);
@@ -360,35 +390,6 @@ namespace GameLovers
 		{
 			TryRemove(_referenceIdResolver(data));
 		}
-
-		/// <inheritdoc />
-		public void Set(TValue data)
-		{			
-			var id = _referenceIdResolver(data);
-			int index = FindIndex(id);
-			if (index < 0)
-			{
-				Add(data);
-			}
-			else
-			{
-				_list[index] = data;
-			}
- 
-			if (_onUpdateActions.TryGetValue(id, out var actions))
-			{
-				for (var i = 0; i < actions.Count; i++)
-				{
-					actions[i](data);
-				}
-			}
-
-			var updates = _updates[(int) ListUpdateType.Updated];
-			for (var i = 0; i < updates.Count; i++)
-			{
-				updates[i](data);
-			}
-		}
 		
 		private int FindIndex(TKey id)
 		{
@@ -418,7 +419,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _updates[(int) ListUpdateType.Removed];
+			var updates = _genericUpdateActions[(int) ListUpdateType.Removed];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](data);

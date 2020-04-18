@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -72,13 +73,21 @@ namespace GameLovers
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onRemoveActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
-		private readonly IReadOnlyDictionary<int, IList<Action<TKey, TValue>>> _updates = 
+		private readonly IReadOnlyDictionary<int, IList<Action<TKey, TValue>>> _genericUpdateActions = 
 			new ReadOnlyDictionary<int, IList<Action<TKey, TValue>>>(new Dictionary<int, IList<Action<TKey, TValue>>>
 			{
 				{(int) ListUpdateType.Added, new List<Action<TKey, TValue>>()},
 				{(int) ListUpdateType.Removed, new List<Action<TKey, TValue>>()},
 				{(int) ListUpdateType.Updated, new List<Action<TKey, TValue>>()}
 			});
+
+		public ObservableDictionary(IDictionary<TKey, TValue> dictionary)
+		{
+			foreach (var pair in dictionary)
+			{
+				Add(pair.Key, pair.Value);
+			}
+		}
 
 		/// <inheritdoc cref="Dictionary{TKey,TValue}.this" />
 		public new TValue this[TKey key]
@@ -96,7 +105,7 @@ namespace GameLovers
 					}
 				}
 
-				var updates = _updates[(int) ListUpdateType.Updated];
+				var updates = _genericUpdateActions[(int) ListUpdateType.Updated];
 				for (var i = 0; i < updates.Count; i++)
 				{
 					updates[i](key, value);
@@ -117,7 +126,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _updates[(int) ListUpdateType.Added];
+			var updates = _genericUpdateActions[(int) ListUpdateType.Added];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](key, value);
@@ -142,7 +151,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _updates[(int) ListUpdateType.Removed];
+			var updates = _genericUpdateActions[(int) ListUpdateType.Removed];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](key, value);
@@ -194,7 +203,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void Observe(ListUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
-			_updates[(int) updateType].Add(onUpdate);
+			_genericUpdateActions[(int) updateType].Add(onUpdate);
 		}
 
 		/// <inheritdoc />
@@ -228,7 +237,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void StopObserving(ListUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
-			_updates[(int) updateType].Remove(onUpdate);
+			_genericUpdateActions[(int) updateType].Remove(onUpdate);
 		}
 
 		/// <inheritdoc />

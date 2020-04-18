@@ -4,6 +4,13 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2020-04-18
+
+- Added the possibility for *ObservableDictionary* to be instantiated with a dictionary in the constructor
+
+**Changed**: 
+- Now *IdList* is assessed with a this.[] operator instead of a *Get* & *Set* direct call
+
 ## [0.5.0] - 2020-03-07
 
 - Added *EnumSelector<T>* & it's property drawer to allow to serialize enums in GameObjects/ScriptableObjects as strings and not the enum value. This will prevent corrupted data when enum values are changed or removed
