@@ -89,6 +89,14 @@ namespace GameLovers
 			}
 		}
 
+		public ObservableDictionary(Func<TValue, TKey> referenceIdResolver, IList<TValue> list)
+		{
+			for (var i = 0; i < list.Count; i++)
+			{
+				Add(referenceIdResolver(list[i]), list[i]);
+			}
+		}
+
 		/// <inheritdoc cref="Dictionary{TKey,TValue}.this" />
 		public new TValue this[TKey key]
 		{
