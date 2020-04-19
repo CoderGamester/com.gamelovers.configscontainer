@@ -92,17 +92,17 @@ namespace GameLovers
 		/// It will notify any observer listing to its data
 		/// </summary>
 		new TValue this[TKey key] { get; set; }
+
+		/// <summary>
+		/// Returns this list reference as an <see cref="IList{T}"/>
+		/// </summary>
+		IList<TValue> GetList();
 		
 		/// <summary>
 		/// Add the given <paramref name="data"/> to the list.
 		/// It will notify any observer listing to its data
 		/// </summary>
 		void Add(TValue data);
-
-		/// <summary>
-		/// Returns this list reference as an <see cref="IList{T}"/>
-		/// </summary>
-		IList<TValue> GetList();
 		
 		/// <summary>
 		/// Removes the data associated with the given <paramref name="id"/>

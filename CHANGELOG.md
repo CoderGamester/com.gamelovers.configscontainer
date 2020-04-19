@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2020-04-19
+
+**Changed**: 
+- Now *ObservableDictionary* has the same parity functionality as the *IdList* and keeps the reference of the managed dictionary so it can be used in other external logic
+
 ## [0.6.1] - 2020-04-18
 
 - Added the possibility for *ObservableDictionary* to be instantiated with a list in the constructor
