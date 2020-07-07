@@ -6,17 +6,10 @@ using System.Collections.ObjectModel;
 
 namespace GameLovers
 {
-	public enum ListUpdateType
-	{
-		Added,
-		Updated,
-		Removed
-	}
-	
 	/// <summary>
 	/// This interface wraps the access to a list of structs by a defined generic id.
 	/// It is possible get, add, remove and set a list element by its Id.
-	/// It is possible to observe changes in the list from one of the defined <see cref="ListUpdateType"/> rules
+	/// It is possible to observe changes in the list from one of the defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
 	public interface IIdList
 	{
@@ -57,25 +50,25 @@ namespace GameLovers
 		/// Observes this list with the given <paramref name="onUpdate"/> when the given <paramref name="id"/> data
 		/// changes following the rule of the given <paramref name="updateType"/>
 		/// </summary>
-		void Observe(TKey id, ListUpdateType updateType, Action<TValue> onUpdate);
+		void Observe(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate);
 		
 		/// <summary>
 		/// Observes this list with the given <paramref name="onUpdate"/> when any data changes following the rule of
 		/// the given <paramref name="updateType"/>
 		/// </summary>
-		void Observe(ListUpdateType updateType, Action<TValue> onUpdate);
+		void Observe(ObservableUpdateType updateType, Action<TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this list with the given <paramref name="onUpdate"/> of the given <paramref name="id"/> data
 		/// changes following the rule of the given <paramref name="updateType"/>
 		/// </summary>
-		void StopObserving(TKey id, ListUpdateType updateType, Action<TValue> onUpdate);
+		void StopObserving(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this list with the given <paramref name="onUpdate"/> of any data changes following the rule of
 		/// the given <paramref name="updateType"/>
 		/// </summary>
-		void StopObserving(ListUpdateType updateType, Action<TValue> onUpdate);
+		void StopObserving(ObservableUpdateType updateType, Action<TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this list updates for the given <paramref name="id"/>
@@ -144,9 +137,9 @@ namespace GameLovers
 		private readonly IReadOnlyDictionary<int, IList<Action<TValue>>> _genericUpdateActions = 
 			new ReadOnlyDictionary<int, IList<Action<TValue>>>(new Dictionary<int, IList<Action<TValue>>>
 			{
-				{(int) ListUpdateType.Added, new List<Action<TValue>>()},
-				{(int) ListUpdateType.Removed, new List<Action<TValue>>()},
-				{(int) ListUpdateType.Updated, new List<Action<TValue>>()}
+				{(int) ObservableUpdateType.Added, new List<Action<TValue>>()},
+				{(int) ObservableUpdateType.Removed, new List<Action<TValue>>()},
+				{(int) ObservableUpdateType.Updated, new List<Action<TValue>>()}
 			});
 
 		/// <inheritdoc />
@@ -193,7 +186,7 @@ namespace GameLovers
 					}
 				}
 
-				var updates = _genericUpdateActions[(int) ListUpdateType.Updated];
+				var updates = _genericUpdateActions[(int) ObservableUpdateType.Updated];
 				for (var i = 0; i < updates.Count; i++)
 				{
 					updates[i](value);
@@ -224,11 +217,11 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public void Observe(TKey id, ListUpdateType updateType, Action<TValue> onUpdate)
+		public void Observe(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
 			switch (updateType)
 			{
-				case ListUpdateType.Added:
+				case ObservableUpdateType.Added:
 					if (!_onAddActions.TryGetValue(id, out var addList))
 					{
 						addList = new List<Action<TValue>>();
@@ -238,7 +231,7 @@ namespace GameLovers
 					
 					addList.Add(onUpdate);
 					break;
-				case ListUpdateType.Updated:
+				case ObservableUpdateType.Updated:
 					if (!_onUpdateActions.TryGetValue(id, out var updateList))
 					{
 						updateList = new List<Action<TValue>>();
@@ -248,7 +241,7 @@ namespace GameLovers
 					
 					updateList.Add(onUpdate);
 					break;
-				case ListUpdateType.Removed:
+				case ObservableUpdateType.Removed:
 					if (!_onRemoveActions.TryGetValue(id, out var removeList))
 					{
 						removeList = new List<Action<TValue>>();
@@ -264,29 +257,29 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public void Observe(ListUpdateType updateType, Action<TValue> onUpdate)
+		public void Observe(ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
 			_genericUpdateActions[(int) updateType].Add(onUpdate);
 		}
 
 		/// <inheritdoc />
-		public void StopObserving(TKey id, ListUpdateType updateType, Action<TValue> onUpdate)
+		public void StopObserving(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
 			switch (updateType)
 			{
-				case ListUpdateType.Added:
+				case ObservableUpdateType.Added:
 					if (_onAddActions.TryGetValue(id, out var addList))
 					{
 						addList.Remove(onUpdate);
 					}
 					break;
-				case ListUpdateType.Updated:
+				case ObservableUpdateType.Updated:
 					if (_onUpdateActions.TryGetValue(id, out var updateList))
 					{
 						updateList.Remove(onUpdate);
 					}
 					break;
-				case ListUpdateType.Removed:
+				case ObservableUpdateType.Removed:
 					if (_onRemoveActions.TryGetValue(id, out var removeList))
 					{
 						removeList.Remove(onUpdate);
@@ -298,11 +291,12 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public void StopObserving(ListUpdateType updateType, Action<TValue> onUpdate)
+		public void StopObserving(ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
 			_genericUpdateActions[(int) updateType].Remove(onUpdate);
 		}
 
+		/// <inheritdoc />
 		public void StopObserving(TKey id)
 		{
 			if (_onAddActions.TryGetValue(id, out var addList))
@@ -344,7 +338,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _genericUpdateActions[(int) ListUpdateType.Added];
+			var updates = _genericUpdateActions[(int) ObservableUpdateType.Added];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](data);
@@ -419,7 +413,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _genericUpdateActions[(int) ListUpdateType.Removed];
+			var updates = _genericUpdateActions[(int) ObservableUpdateType.Removed];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](data);

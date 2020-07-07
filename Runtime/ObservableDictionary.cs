@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -7,15 +6,8 @@ using System.Collections.ObjectModel;
 
 namespace GameLovers
 {
-	public enum DictionaryUpdateType
-	{
-		Added,
-		Updated,
-		Removed
-	}
-	
 	/// <summary>
-	/// A simple dictionary with the possibility to observe changes to it's elements defined <see cref="DictionaryUpdateType"/> rules
+	/// A simple dictionary with the possibility to observe changes to it's elements defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
 	public interface IObservableDictionary
 	{
@@ -48,25 +40,25 @@ namespace GameLovers
 		/// Observes this dictionary with the given <paramref name="onUpdate"/> when the given <paramref name="key"/> data
 		/// changes following the rule of the given <paramref name="updateType"/>
 		/// </summary>
-		void Observe(TKey key, ListUpdateType updateType, Action<TKey, TValue> onUpdate);
+		void Observe(TKey key, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
 		
 		/// <summary>
 		/// Observes this dictionary with the given <paramref name="onUpdate"/> when any data changes following the rule of
 		/// the given <paramref name="updateType"/>
 		/// </summary>
-		void Observe(ListUpdateType updateType, Action<TKey, TValue> onUpdate);
+		void Observe(ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this dictionary with the given <paramref name="onUpdate"/> of the given <paramref name="key"/> data
 		/// changes following the rule of the given <paramref name="updateType"/>
 		/// </summary>
-		void StopObserving(TKey key, ListUpdateType updateType, Action<TKey, TValue> onUpdate);
+		void StopObserving(TKey key, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this dictionary with the given <paramref name="onUpdate"/> of any data changes following the rule of
 		/// the given <paramref name="updateType"/>
 		/// </summary>
-		void StopObserving(ListUpdateType updateType, Action<TKey, TValue> onUpdate);
+		void StopObserving(ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this dictionary updates for the given <paramref name="key"/>
@@ -106,9 +98,9 @@ namespace GameLovers
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onRemoveActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
 		private readonly IDictionary<int, IList<Action<TKey, TValue>>> _genericUpdateActions = new Dictionary<int, IList<Action<TKey, TValue>>>
 		{
-			{(int) ListUpdateType.Added, new List<Action<TKey, TValue>>()},
-			{(int) ListUpdateType.Removed, new List<Action<TKey, TValue>>()},
-			{(int) ListUpdateType.Updated, new List<Action<TKey, TValue>>()}
+			{(int) ObservableUpdateType.Added, new List<Action<TKey, TValue>>()},
+			{(int) ObservableUpdateType.Removed, new List<Action<TKey, TValue>>()},
+			{(int) ObservableUpdateType.Updated, new List<Action<TKey, TValue>>()}
 		};
 
 		public int Count => _dictionary.Count;
@@ -136,7 +128,7 @@ namespace GameLovers
 					}
 				}
 
-				var updates = _genericUpdateActions[(int) ListUpdateType.Updated];
+				var updates = _genericUpdateActions[(int) ObservableUpdateType.Updated];
 				for (var i = 0; i < updates.Count; i++)
 				{
 					updates[i](key, value);
@@ -181,7 +173,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _genericUpdateActions[(int) ListUpdateType.Added];
+			var updates = _genericUpdateActions[(int) ObservableUpdateType.Added];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](key, value);
@@ -208,7 +200,7 @@ namespace GameLovers
 				}
 			}
 
-			var updates = _genericUpdateActions[(int) ListUpdateType.Removed];
+			var updates = _genericUpdateActions[(int) ObservableUpdateType.Removed];
 			for (var i = 0; i < updates.Count; i++)
 			{
 				updates[i](key, value);
@@ -218,11 +210,11 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public void Observe(TKey key, ListUpdateType updateType, Action<TKey, TValue> onUpdate)
+		public void Observe(TKey key, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
 			switch (updateType)
 			{
-				case ListUpdateType.Added:
+				case ObservableUpdateType.Added:
 					if (!_onAddActions.TryGetValue(key, out var addList))
 					{
 						addList = new List<Action<TKey, TValue>>();
@@ -232,7 +224,7 @@ namespace GameLovers
 					
 					addList.Add(onUpdate);
 					break;
-				case ListUpdateType.Updated:
+				case ObservableUpdateType.Updated:
 					if (!_onUpdateActions.TryGetValue(key, out var updateList))
 					{
 						updateList = new List<Action<TKey, TValue>>();
@@ -242,7 +234,7 @@ namespace GameLovers
 					
 					updateList.Add(onUpdate);
 					break;
-				case ListUpdateType.Removed:
+				case ObservableUpdateType.Removed:
 					if (!_onRemoveActions.TryGetValue(key, out var removeList))
 					{
 						removeList = new List<Action<TKey, TValue>>();
@@ -258,29 +250,29 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public void Observe(ListUpdateType updateType, Action<TKey, TValue> onUpdate)
+		public void Observe(ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
 			_genericUpdateActions[(int) updateType].Add(onUpdate);
 		}
 
 		/// <inheritdoc />
-		public void StopObserving(TKey key, ListUpdateType updateType, Action<TKey, TValue> onUpdate)
+		public void StopObserving(TKey key, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
 			switch (updateType)
 			{
-				case ListUpdateType.Added:
+				case ObservableUpdateType.Added:
 					if (_onAddActions.TryGetValue(key, out var addList))
 					{
 						addList.Remove(onUpdate);
 					}
 					break;
-				case ListUpdateType.Updated:
+				case ObservableUpdateType.Updated:
 					if (_onUpdateActions.TryGetValue(key, out var updateList))
 					{
 						updateList.Remove(onUpdate);
 					}
 					break;
-				case ListUpdateType.Removed:
+				case ObservableUpdateType.Removed:
 					if (_onRemoveActions.TryGetValue(key, out var removeList))
 					{
 						removeList.Remove(onUpdate);
@@ -292,7 +284,7 @@ namespace GameLovers
 		}
 		
 		/// <inheritdoc />
-		public void StopObserving(ListUpdateType updateType, Action<TKey, TValue> onUpdate)
+		public void StopObserving(ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
 			_genericUpdateActions[(int) updateType].Remove(onUpdate);
 		}
