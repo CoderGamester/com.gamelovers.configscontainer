@@ -42,6 +42,12 @@ namespace GameLovers
 		/// </summary>
 		void Observe(TKey key, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
 		
+		/// <inheritdoc cref="Observe(TKey,GameLovers.ObservableUpdateType,System.Action{TKey,TValue})" />
+		/// <remarks>
+		/// It invokes the given <paramref name="onUpdate"/> method before starting to observe to this dictionary
+		/// </remarks>
+		void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate);
+		
 		/// <summary>
 		/// Observes this dictionary with the given <paramref name="onUpdate"/> when any data changes following the rule of
 		/// the given <paramref name="updateType"/>
@@ -247,6 +253,14 @@ namespace GameLovers
 				default:
 					throw new ArgumentOutOfRangeException(nameof(updateType), updateType, "Wrong update type");
 			}
+		}
+
+		/// <inheritdoc />
+		public void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
+		{
+			onUpdate(id, _dictionary[id]);
+			
+			Observe(id, updateType, onUpdate);
 		}
 
 		/// <inheritdoc />
