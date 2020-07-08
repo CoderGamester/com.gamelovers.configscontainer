@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 
 // ReSharper disable once CheckNamespace
 
@@ -21,6 +22,12 @@ namespace GameLovers
 		/// the given <paramref name="updateType"/>
 		/// </summary>
 		void Observe(ObservableUpdateType updateType, Action<T> onUpdate);
+		
+		/// <inheritdoc cref="Observe" />
+		/// <remarks>
+		/// It invokes the given <paramref name="onUpdate"/> method before starting to observe to this field
+		/// </remarks>
+		void InvokeObserve(ObservableUpdateType updateType, Action<T> onUpdate);
 		
 		/// <summary>
 		/// Stops observing this field with the given <paramref name="onUpdate"/> of any data changes following the rule of
@@ -65,11 +72,20 @@ namespace GameLovers
 			_fieldResolver = fieldResolver;
 			_fieldSetter = fieldSetter;
 		}
+		
+		public static implicit operator T(ObservableField<T> value) => value.Value;
 
 		/// <inheritdoc />
 		public void Observe(ObservableUpdateType updateType, Action<T> onUpdate)
 		{
 			_genericUpdateActions[(int) updateType].Add(onUpdate);
+		}
+
+		/// <inheritdoc />
+		public void InvokeObserve(ObservableUpdateType updateType, Action<T> onUpdate)
+		{
+			onUpdate(Value);
+			Observe(updateType, onUpdate);
 		}
 
 		/// <inheritdoc />

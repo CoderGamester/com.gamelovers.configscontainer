@@ -52,6 +52,12 @@ namespace GameLovers
 		/// </summary>
 		void Observe(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate);
 		
+		/// <inheritdoc cref="Observe(TKey,GameLovers.ObservableUpdateType,System.Action{TValue})" />
+		/// <remarks>
+		/// It invokes the given <paramref name="onUpdate"/> method before starting to observe to this list
+		/// </remarks>
+		void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate);
+		
 		/// <summary>
 		/// Observes this list with the given <paramref name="onUpdate"/> when any data changes following the rule of
 		/// the given <paramref name="updateType"/>
@@ -147,6 +153,7 @@ namespace GameLovers
 		
 		private IdList() {}
  
+		// ReSharper disable once MemberCanBeProtected.Global
 		public IdList(Func<TValue, TKey> referenceIdResolver, IList<TValue> list)
 		{
 			_referenceIdResolver = referenceIdResolver;
@@ -254,6 +261,14 @@ namespace GameLovers
 				default:
 					throw new ArgumentOutOfRangeException(nameof(updateType), updateType, "Wrong update type");
 			}
+		}
+
+		/// <inheritdoc />
+		public void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate)
+		{
+			onUpdate(_list[FindIndex(id)]);
+			
+			Observe(id, updateType, onUpdate);
 		}
 
 		/// <inheritdoc />
