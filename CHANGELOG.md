@@ -4,6 +4,12 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2020-07-07
+
+**Changed**: 
+- Renamed observable collections getters to properties
+- Now the observable collections don't take the collection reference directly in the constructor but rather the lambda to get it. This allows for async setups with observable collections.
+
 ## [0.8.1] - 2020-07-07
 
 - Added implicit operator to convert *ObservableField* to it's defined generic type

@@ -33,6 +33,11 @@ namespace GameLovers
 		/// Thrown when there is no data is associated with the given <paramref name="key"/>
 		/// </exception>
 		TValue this[TKey key] { get; }
+		
+		/// <summary>
+		/// Requests this list as a <see cref="IReadOnlyList{T}"/>
+		/// </summary>
+		IReadOnlyList<TValue> ReadOnlyList { get; }
 			
 		/// <summary>
 		/// Looks up the data that is associated with the given <paramref name="key"/>.
@@ -40,11 +45,6 @@ namespace GameLovers
 		/// The <paramref name="value"/> will be the default if returns false
 		/// </summary>
 		bool TryGet(TKey key, out TValue value);
-		
-		/// <summary>
-		/// Requests this list as a <see cref="IReadOnlyList{T}"/>
-		/// </summary>
-		IReadOnlyList<TValue> GetReadOnlyList();
 
 		/// <summary>
 		/// Observes this list with the given <paramref name="onUpdate"/> when the given <paramref name="id"/> data
@@ -95,7 +95,7 @@ namespace GameLovers
 		/// <summary>
 		/// Returns this list reference as an <see cref="IList{T}"/>
 		/// </summary>
-		IList<TValue> GetList();
+		IList<TValue> List { get; }
 		
 		/// <summary>
 		/// Add the given <paramref name="data"/> to the list.
@@ -135,7 +135,7 @@ namespace GameLovers
 		where TValue : struct
 	{
 		private readonly Func<TValue, TKey> _referenceIdResolver;
-		private readonly IList<TValue> _list;
+		private readonly Func<IList<TValue>> _listResolver;
 		private readonly EqualityComparer<TKey> _comparer = EqualityComparer<TKey>.Default;
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TValue>>>();
@@ -149,15 +149,19 @@ namespace GameLovers
 			});
 
 		/// <inheritdoc />
-		public int Count => _list.Count;
+		public int Count => _listResolver().Count;
+		/// <inheritdoc />
+		public IReadOnlyList<TValue> ReadOnlyList => new ReadOnlyCollection<TValue>(_listResolver());
+		/// <inheritdoc />
+		public IList<TValue> List => _listResolver();
 		
 		private IdList() {}
  
 		// ReSharper disable once MemberCanBeProtected.Global
-		public IdList(Func<TValue, TKey> referenceIdResolver, IList<TValue> list)
+		public IdList(Func<TValue, TKey> referenceIdResolver, Func<IList<TValue>> listResolver)
 		{
 			_referenceIdResolver = referenceIdResolver;
-			_list = list;
+			_listResolver = listResolver;
 		}
 
 		/// <inheritdoc cref="IIdList{TKey,TValue}.this" />
@@ -182,7 +186,7 @@ namespace GameLovers
 				}
 				else
 				{
-					_list[index] = value;
+					_listResolver()[index] = value;
 				}
  
 				if (_onUpdateActions.TryGetValue(id, out var actions))
@@ -212,15 +216,9 @@ namespace GameLovers
 				return false;
 			}
  
-			value = _list[index];
+			value = _listResolver()[index];
 
 			return true;
-		}
-
-		/// <inheritdoc />
-		public IReadOnlyList<TValue> GetReadOnlyList()
-		{
-			return new ReadOnlyCollection<TValue>(_list);
 		}
 
 		/// <inheritdoc />
@@ -266,7 +264,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
-			onUpdate(_list[FindIndex(id)]);
+			onUpdate(_listResolver()[FindIndex(id)]);
 			
 			Observe(id, updateType, onUpdate);
 		}
@@ -343,7 +341,7 @@ namespace GameLovers
 				throw new ArgumentException($"Cannot add {nameof(TValue)} with id {id.ToString()}, because it already exists");
 			}
  
-			_list.Add(data);
+			_listResolver().Add(data);
 			
 			if (_onAddActions.TryGetValue(id, out var actions))
 			{
@@ -358,12 +356,6 @@ namespace GameLovers
 			{
 				updates[i](data);
 			}
-		}
- 
-		/// <inheritdoc />
-		public IList<TValue> GetList()
-		{
-			return _list;
 		}
 
 		/// <inheritdoc />
@@ -402,7 +394,7 @@ namespace GameLovers
 		
 		private int FindIndex(TKey id)
 		{
-			var list = _list;
+			var list = _listResolver();
 			for (var i = 0; i < list.Count; i++)
 			{
 				if (_comparer.Equals(_referenceIdResolver(list[i]), id))
@@ -416,9 +408,9 @@ namespace GameLovers
 
 		private void Remove(int index, TKey id)
 		{
-			var data = _list[index];
+			var data = _listResolver()[index];
 			
-			_list.RemoveAt(index);
+			_listResolver().RemoveAt(index);
 			
 			if (_onRemoveActions.TryGetValue(id, out var actions))
 			{
