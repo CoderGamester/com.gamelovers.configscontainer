@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 // ReSharper disable once CheckNamespace
@@ -10,7 +11,7 @@ namespace GameLovers
 	/// </remarks>
 	public class ObservableList<T> : IdList<int, T> where T : struct
 	{
-		public ObservableList(IList<T> list) : base(list.IndexOf, list)
+		public ObservableList(Func<IList<T>> listResolver) : base(value => listResolver().IndexOf(value), listResolver)
 		{
 		}
 	}
