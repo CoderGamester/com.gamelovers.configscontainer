@@ -11,7 +11,7 @@ namespace GameLovers
 	/// It is possible get, add, remove and set a list element by its Id.
 	/// It is possible to observe changes in the list from one of the defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
-	public interface IIdList
+	public interface IObservableIdList
 	{
 		/// <summary>
 		/// Requests the list element count
@@ -23,7 +23,7 @@ namespace GameLovers
 	/// <remarks>
 	/// Read only uniqueId list interface
 	/// </remarks>
-	public interface IIdListReader<in TKey, TValue> : IIdList 
+	public interface IObservableIdListReader<in TKey, TValue> : IObservableIdList 
 		where TValue : struct
 	{
 		/// <summary>
@@ -82,8 +82,8 @@ namespace GameLovers
 		void StopObserving(TKey id);
 	}
 
-	/// <inheritdoc cref="IIdList" />
-	public interface IIdList<in TKey, TValue> : IIdListReader<TKey, TValue>
+	/// <inheritdoc cref="IObservableIdList" />
+	public interface IObservableIdList<in TKey, TValue> : IObservableIdListReader<TKey, TValue>
 		where TValue : struct
 	{
 		/// <summary>
@@ -131,7 +131,7 @@ namespace GameLovers
 	}
  
 	/// <inheritdoc />
-	public class IdList<TKey, TValue> : IIdList<TKey, TValue>
+	public class ObservableIdList<TKey, TValue> : IObservableIdList<TKey, TValue>
 		where TValue : struct
 	{
 		private readonly Func<TValue, TKey> _referenceIdResolver;
@@ -148,23 +148,7 @@ namespace GameLovers
 				{(int) ObservableUpdateType.Updated, new List<Action<TValue>>()}
 			});
 
-		/// <inheritdoc />
-		public int Count => _listResolver().Count;
-		/// <inheritdoc />
-		public IReadOnlyList<TValue> ReadOnlyList => new ReadOnlyCollection<TValue>(_listResolver());
-		/// <inheritdoc />
-		public IList<TValue> List => _listResolver();
-		
-		private IdList() {}
- 
-		// ReSharper disable once MemberCanBeProtected.Global
-		public IdList(Func<TValue, TKey> referenceIdResolver, Func<IList<TValue>> listResolver)
-		{
-			_referenceIdResolver = referenceIdResolver;
-			_listResolver = listResolver;
-		}
-
-		/// <inheritdoc cref="IIdList{TKey,TValue}.this" />
+		/// <inheritdoc cref="IObservableIdList{TKey,TValue}.this" />
 		public TValue this[TKey key]
 		{
 			get
@@ -203,6 +187,22 @@ namespace GameLovers
 					updates[i](value);
 				}
 			}
+		}
+
+		/// <inheritdoc />
+		public int Count => _listResolver().Count;
+		/// <inheritdoc />
+		public IReadOnlyList<TValue> ReadOnlyList => new ReadOnlyCollection<TValue>(_listResolver());
+		/// <inheritdoc />
+		public IList<TValue> List => _listResolver();
+		
+		private ObservableIdList() {}
+ 
+		// ReSharper disable once MemberCanBeProtected.Global
+		public ObservableIdList(Func<TValue, TKey> referenceIdResolver, Func<IList<TValue>> listResolver)
+		{
+			_referenceIdResolver = referenceIdResolver;
+			_listResolver = listResolver;
 		}
 
 		/// <inheritdoc />
@@ -334,7 +334,7 @@ namespace GameLovers
 
 		/// <inheritdoc />
 		public void Add(TValue data)
-		{			
+		{
 			var id = _referenceIdResolver(data);
 			if (FindIndex(id) >= 0)
 			{
