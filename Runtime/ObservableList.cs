@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -9,7 +10,7 @@ namespace GameLovers
 	/// <summary>
 	/// A list with the possibility to observe changes to it's elements defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
-	public interface IObservableListReader
+	public interface IObservableListReader : IEnumerable
 	{
 		/// <summary>
 		/// Requests the list element count
@@ -17,11 +18,11 @@ namespace GameLovers
 		int Count { get; }
 	}
 	
-	/// <inheritdoc />
+	/// <inheritdoc cref="IObservableListReader"/>
 	/// <remarks>
 	/// Read only observable list interface
 	/// </remarks>
-	public interface IObservableListReader<out T> :IObservableListReader where T : struct
+	public interface IObservableListReader<out T> :IObservableListReader, IEnumerable<T> where T : struct
 	{
 		/// <summary>
 		/// Looks up and return the data that is associated with the given <paramref name="index"/>
@@ -54,11 +55,6 @@ namespace GameLovers
 		/// It will notify any observer listing to its data
 		/// </summary>
 		new T this[int index] { get; set; }
-
-		/// <summary>
-		/// Returns this list reference as an <see cref="IList{T}"/>
-		/// </summary>
-		IList<T> List { get; }
 		
 		/// <summary>
 		/// Add the given <paramref name="data"/> to the list.
@@ -78,7 +74,7 @@ namespace GameLovers
 	/// <inheritdoc />
 	public class ObservableList<T> : IObservableList<T> where T : struct
 	{
-		private readonly Func<IList<T>> _listResolver;
+		private readonly IList<T> _list;
 		private readonly IReadOnlyDictionary<int, IList<Action<int, T>>> _genericUpdateActions = 
 			new ReadOnlyDictionary<int, IList<Action<int, T>>>(new Dictionary<int, IList<Action<int, T>>>
 			{
@@ -90,10 +86,10 @@ namespace GameLovers
 		/// <inheritdoc cref="IObservableList{T}.this" />
 		public T this[int index]
 		{
-			get => _listResolver()[index];
+			get => _list[index];
 			set
 			{
-				_listResolver()[index] = value;
+				_list[index] = value;
 				
 				var updates = _genericUpdateActions[(int) ObservableUpdateType.Updated];
 				for (var i = 0; i < updates.Count; i++)
@@ -104,21 +100,31 @@ namespace GameLovers
 		}
 		
 		/// <inheritdoc />
-		public int Count => _listResolver().Count;
+		public int Count => _list.Count;
 		/// <inheritdoc />
-		public IList<T> List => _listResolver();
-		/// <inheritdoc />
-		public IReadOnlyList<T> ReadOnlyList => new ReadOnlyCollection<T>(_listResolver());
+		public IReadOnlyList<T> ReadOnlyList => new ReadOnlyCollection<T>(_list);
 		
-		public ObservableList(Func<IList<T>> listResolver)
+		public ObservableList(IList<T> list)
 		{
-			_listResolver = listResolver;
+			_list = list;
+		}
+
+		/// <inheritdoc />
+		public IEnumerator<T> GetEnumerator()
+		{
+			return _list.GetEnumerator();
+		}
+
+		/// <inheritdoc />
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 		
 		/// <inheritdoc />
 		public void Add(T data)
 		{
-			_listResolver().Add(data);
+			_list.Add(data);
 
 			var updates = _genericUpdateActions[(int) ObservableUpdateType.Added];
 			for (var i = 0; i < updates.Count; i++)
@@ -130,9 +136,9 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void Remove(int index)
 		{
-			var data = _listResolver()[index];
+			var data = _list[index];
 			
-			_listResolver().RemoveAt(index);
+			_list.RemoveAt(index);
 
 			var updates = _genericUpdateActions[(int) ObservableUpdateType.Removed];
 			for (var i = 0; i < updates.Count; i++)
