@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -11,7 +12,7 @@ namespace GameLovers
 	/// It is possible get, add, remove and set a list element by its Id.
 	/// It is possible to observe changes in the list from one of the defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
-	public interface IObservableIdList
+	public interface IObservableIdList : IEnumerable
 	{
 		/// <summary>
 		/// Requests the list element count
@@ -19,11 +20,11 @@ namespace GameLovers
 		int Count { get; }
 	}
 
-	/// <inheritdoc />
+	/// <inheritdoc cref="IObservableIdList"/>
 	/// <remarks>
 	/// Read only uniqueId list interface
 	/// </remarks>
-	public interface IObservableIdListReader<in TKey, TValue> : IObservableIdList 
+	public interface IObservableIdListReader<in TKey, TValue> : IObservableIdList, IEnumerable<TValue>
 		where TValue : struct
 	{
 		/// <summary>
@@ -91,11 +92,6 @@ namespace GameLovers
 		/// It will notify any observer listing to its data
 		/// </summary>
 		new TValue this[TKey key] { get; set; }
-
-		/// <summary>
-		/// Returns this list reference as an <see cref="IList{T}"/>
-		/// </summary>
-		IList<TValue> List { get; }
 		
 		/// <summary>
 		/// Add the given <paramref name="data"/> to the list.
@@ -134,8 +130,8 @@ namespace GameLovers
 	public class ObservableIdList<TKey, TValue> : IObservableIdList<TKey, TValue>
 		where TValue : struct
 	{
+		private readonly IList<TValue> _list;
 		private readonly Func<TValue, TKey> _referenceIdResolver;
-		private readonly Func<IList<TValue>> _listResolver;
 		private readonly EqualityComparer<TKey> _comparer = EqualityComparer<TKey>.Default;
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TValue>>>();
@@ -170,7 +166,7 @@ namespace GameLovers
 				}
 				else
 				{
-					_listResolver()[index] = value;
+					_list[index] = value;
 				}
  
 				if (_onUpdateActions.TryGetValue(id, out var actions))
@@ -190,19 +186,28 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
-		public int Count => _listResolver().Count;
+		public int Count => _list.Count;
 		/// <inheritdoc />
-		public IReadOnlyList<TValue> ReadOnlyList => new ReadOnlyCollection<TValue>(_listResolver());
-		/// <inheritdoc />
-		public IList<TValue> List => _listResolver();
+		public IReadOnlyList<TValue> ReadOnlyList => new ReadOnlyCollection<TValue>(_list);
 		
 		private ObservableIdList() {}
  
-		// ReSharper disable once MemberCanBeProtected.Global
-		public ObservableIdList(Func<TValue, TKey> referenceIdResolver, Func<IList<TValue>> listResolver)
+		public ObservableIdList(Func<TValue, TKey> referenceIdResolver, IList<TValue> list)
 		{
 			_referenceIdResolver = referenceIdResolver;
-			_listResolver = listResolver;
+			_list = list;
+		}
+
+		/// <inheritdoc />
+		public IEnumerator<TValue> GetEnumerator()
+		{
+			return _list.GetEnumerator();
+		}
+
+		/// <inheritdoc />
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 
 		/// <inheritdoc />
@@ -216,7 +221,7 @@ namespace GameLovers
 				return false;
 			}
  
-			value = _listResolver()[index];
+			value = _list[index];
 
 			return true;
 		}
@@ -264,7 +269,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TValue> onUpdate)
 		{
-			onUpdate(_listResolver()[FindIndex(id)]);
+			onUpdate(_list[FindIndex(id)]);
 			
 			Observe(id, updateType, onUpdate);
 		}
@@ -341,7 +346,7 @@ namespace GameLovers
 				throw new ArgumentException($"Cannot add {nameof(TValue)} with id {id.ToString()}, because it already exists");
 			}
  
-			_listResolver().Add(data);
+			_list.Add(data);
 			
 			if (_onAddActions.TryGetValue(id, out var actions))
 			{
@@ -394,7 +399,7 @@ namespace GameLovers
 		
 		private int FindIndex(TKey id)
 		{
-			var list = _listResolver();
+			var list = _list;
 			for (var i = 0; i < list.Count; i++)
 			{
 				if (_comparer.Equals(_referenceIdResolver(list[i]), id))
@@ -408,9 +413,9 @@ namespace GameLovers
 
 		private void Remove(int index, TKey id)
 		{
-			var data = _listResolver()[index];
+			var data = _list[index];
 			
-			_listResolver().RemoveAt(index);
+			_list.RemoveAt(index);
 			
 			if (_onRemoveActions.TryGetValue(id, out var actions))
 			{

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -9,7 +10,7 @@ namespace GameLovers
 	/// <summary>
 	/// A simple dictionary with the possibility to observe changes to it's elements defined <see cref="ObservableUpdateType"/> rules
 	/// </summary>
-	public interface IObservableDictionary
+	public interface IObservableDictionary : IEnumerable
 	{
 		/// <summary>
 		/// Requests the element count of this dictionary
@@ -17,8 +18,8 @@ namespace GameLovers
 		int Count { get; }
 	}
 
-	/// <inheritdoc />
-	public interface IObservableDictionaryReader<TKey, TValue> : IObservableDictionary
+	/// <inheritdoc cref="IObservableDictionary"/>
+	public interface IObservableDictionaryReader<TKey, TValue> : IObservableDictionary, IEnumerable<KeyValuePair<TKey, TValue>>
 	{
 		/// <summary>
 		/// Looks up and return the data that is associated with the given <paramref name="key"/>
@@ -82,11 +83,6 @@ namespace GameLovers
 		/// </summary>
 		new TValue this[TKey key] { get; set; }
 
-		/// <summary>
-		/// Returns this dictionary reference as an <see cref="IDictionary{TKey,TValue}"/>
-		/// </summary>
-		IDictionary<TKey, TValue> Dictionary { get; }
-
 		/// <inheritdoc cref="Dictionary{TKey,TValue}.Add" />
 		void Add(TKey key, TValue value);
 
@@ -98,7 +94,7 @@ namespace GameLovers
 	public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>
 		where TValue : struct
 	{
-		private readonly Func<IDictionary<TKey, TValue>> _dictionaryResolver;
+		private readonly IDictionary<TKey, TValue> _dictionary;
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onAddActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onUpdateActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
 		private readonly IDictionary<TKey, IList<Action<TKey, TValue>>> _onRemoveActions = new Dictionary<TKey, IList<Action<TKey, TValue>>>();
@@ -110,26 +106,24 @@ namespace GameLovers
 		};
 
 		/// <inheritdoc />
-		public int Count => _dictionaryResolver().Count;
+		public int Count => _dictionary.Count;
 		/// <inheritdoc />
-		public IReadOnlyDictionary<TKey, TValue> ReadOnlyDictionary => new ReadOnlyDictionary<TKey, TValue>(_dictionaryResolver());
-		/// <inheritdoc />
-		public IDictionary<TKey, TValue> Dictionary => _dictionaryResolver();
+		public IReadOnlyDictionary<TKey, TValue> ReadOnlyDictionary => new ReadOnlyDictionary<TKey, TValue>(_dictionary);
 		
 		private ObservableDictionary() {}
 
-		public ObservableDictionary(Func<IDictionary<TKey, TValue>> dictionaryResolver)
+		public ObservableDictionary(IDictionary<TKey, TValue> dictionary)
 		{
-			_dictionaryResolver = dictionaryResolver;
+			_dictionary = dictionary;
 		}
 
 		/// <inheritdoc cref="Dictionary{TKey,TValue}.this" />
 		public TValue this[TKey key]
 		{
-			get => _dictionaryResolver()[key];
+			get => _dictionary[key];
 			set
 			{
-				_dictionaryResolver()[key] = value;
+				_dictionary[key] = value;
  
 				if (_onUpdateActions.TryGetValue(key, out var actions))
 				{
@@ -148,21 +142,33 @@ namespace GameLovers
 		}
 
 		/// <inheritdoc />
+		public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+		{
+			return _dictionary.GetEnumerator();
+		}
+
+		/// <inheritdoc />
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
+		}
+
+		/// <inheritdoc />
 		public bool TryGetValue(TKey key, out TValue value)
 		{
-			return _dictionaryResolver().TryGetValue(key, out value);
+			return _dictionary.TryGetValue(key, out value);
 		}
 
 		/// <inheritdoc />
 		public bool ContainsKey(TKey key)
 		{
-			return _dictionaryResolver().ContainsKey(key);
+			return _dictionary.ContainsKey(key);
 		}
 
 		/// <inheritdoc />
 		public void Add(TKey key, TValue value)
 		{
-			_dictionaryResolver().Add(key, value);
+			_dictionary.Add(key, value);
 			
 			if (_onAddActions.TryGetValue(key, out var actions))
 			{
@@ -184,11 +190,11 @@ namespace GameLovers
 		{
 			var ret = false;
 
-			if (_dictionaryResolver().TryGetValue(key, out var value))
+			if (_dictionary.TryGetValue(key, out var value))
 			{
 				ret = true;
 
-				_dictionaryResolver().Remove(key);
+				_dictionary.Remove(key);
 			}
 			
 			if (_onRemoveActions.TryGetValue(key, out var actions))
@@ -251,7 +257,7 @@ namespace GameLovers
 		/// <inheritdoc />
 		public void InvokeObserve(TKey id, ObservableUpdateType updateType, Action<TKey, TValue> onUpdate)
 		{
-			onUpdate(id, _dictionaryResolver()[id]);
+			onUpdate(id, _dictionary[id]);
 			
 			Observe(id, updateType, onUpdate);
 		}

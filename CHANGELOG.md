@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2020-08-18
+
+- Added Enumerator to all observable collections
+
+**Changed**: 
+- Removed the collection resolver from all observable collections
+- Removed the possibility to have the raw collection from all observable collections
+
 ## [1.0.0] - 2020-08-05
 
 - Improved the *ObservableList* performance
