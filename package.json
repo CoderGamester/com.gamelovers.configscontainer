@@ -1,9 +1,9 @@
 {
   "name": "com.gamelovers.configscontainer",
   "displayName": "Configs Container",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "unity": "2019.3",
-  "description": "This package helps with persistently maintain the static config data inside a ScriptableObject in the project.\nIt also provides with data type containers to store game data.",
+  "description": "This package extends various sets of data types to be used in any type of data containers or persistent seriazable data",
   "type": "library",
   "hideInEditor": false
 }
